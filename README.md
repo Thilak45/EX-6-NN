@@ -34,106 +34,60 @@ Step 11:Plot the error convergence during training using plt.plot() and plt.show
 <H3>Program: </H3>
 
 ```
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score,classification_report,confusion_matrix
+import matplotlib.pyplot as plt
 
+# Load the dataset (assuming it's stored in a file)
+data = pd.read_csv('heart.csv')
 
-# Step 3: Gaussian Radial Basis Function
-def gaussian_rbf(x, center, sigma=1.0):
-    return np.exp(-np.linalg.norm(x - center) ** 2 / (2 * (sigma**2)))
+# Separate features and labels
+X = data.iloc[:, :-1].values  # Features
+y = data.iloc[:, -1].values   # Labels
 
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# STEP 1: Initialize the input vector for 2-bit binary data (XOR Inputs)
-X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+# Normalize the feature data
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
 
-# Target XOR Outputs
-Y = np.array([0, 1, 1, 0])
+# Create and train the MLP model
+mlp = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=1000, random_state=42)
+training_loss = mlp.fit(X_train, y_train).loss_curve_
 
-# STEP 2: Initialize the centers for hidden neurons in hidden layer
-# Choosing centers matching the inputs for transformation
-centers = np.array([[0, 0], [1, 1]])  # Center 1 and Center 2
-sigma = 1.0  # Spread factor
+# Make predictions on the testing set
+y_pred = mlp.predict(X_test)
 
-# STEP 3: Compute non-linear feature mapping (Hidden Space matrix phi)
-phi = np.zeros((len(X), len(centers)))
-for i in range(len(X)):
-    for j in range(len(centers)):
-        phi[i, j] = gaussian_rbf(X[i], centers[j], sigma)
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
 
-# Add bias term to hidden space matrix
-phi_with_bias = np.c_[phi, np.ones(len(X))]
-
-# STEP 4: Determine/Solve weights using pseudo-inverse (Least Squares)
-# W = (phi^T * phi)^(-1) * phi^T * Y
-weights = np.linalg.pinv(phi_with_bias) @ Y
-
-# STEP 5: Determine output predictions: Y_pred = W1 * phi1 + W2 * phi2 + Bias
-Y_pred_raw = phi_with_bias @ weights
-Y_pred = np.where(Y_pred_raw >= 0.5, 1, 0)
-
-# STEP 6: Test the network for accuracy
-accuracy = np.mean(Y_pred == Y) * 100
-
-print("--- RBF NETWORK FOR XOR GATE ---")
-print("Hidden Space Matrix (Phi):\n", np.round(phi, 4))
-print("\nLearned Weights (including bias):\n", np.round(weights, 4))
-print("\nPredictions:")
-for i in range(len(X)):
-    print(
-        f"Input: {X[i]} -> Target: {Y[i]} -> Raw Output: {Y_pred_raw[i]:.4f} -> Predicted: {Y_pred[i]}"
-    )
-
-print(f"\nModel Accuracy: {accuracy:.2f}%")
-
-# STEP 7: Plot the Input space and Hidden space
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-
-# Plot 1: Non-linearly separable Input Space
-for i in range(len(X)):
-    color = "blue" if Y[i] == 1 else "red"
-    marker = "o" if Y[i] == 1 else "s"
-    ax1.scatter(
-        X[i, 0], X[i, 1], color=color, marker=marker, s=150, label=f"Class {Y[i]}"
-    )
-
-ax1.set_title("Input Space (Non-linearly Separable)")
-ax1.set_xlabel("X1")
-ax1.set_ylabel("X2")
-ax1.grid(True)
-
-# Plot 2: Linearly separable Hidden Space (Phi1 vs Phi2)
-for i in range(len(X)):
-    color = "blue" if Y[i] == 1 else "red"
-    marker = "o" if Y[i] == 1 else "s"
-    ax2.scatter(
-        phi[i, 0],
-        phi[i, 1],
-        color=color,
-        marker=marker,
-        s=150,
-        label=f"Class {Y[i]}",
-    )
-
-# Draw decision boundary line in hidden space
-x_vals = np.linspace(0.3, 1.0, 100)
-# Line equation from learned weights
-y_vals = -(weights[0] * x_vals + weights[2] - 0.5) / weights[1]
-ax2.plot(x_vals, y_vals, "k--", label="Decision Boundary")
-
-ax2.set_title("Hidden Space Transformation (Linearly Separable)")
-ax2.set_xlabel("Phi 1 (RBF Center 1)")
-ax2.set_ylabel("Phi 2 (RBF Center 2)")
-ax2.grid(True)
-
-plt.tight_layout()
+# Plot the error convergence
+plt.plot(training_loss)
+plt.title("MLP Training Loss Convergence")
+plt.xlabel("Iteration")
+plt.ylabel("Training Loss")
 plt.show()
+
+conf_matrix=confusion_matrix(y_test,y_pred)
+classification_rep=classification_report(y_test,y_pred)
+print("\nConfusion Matrix:")
+print(conf_matrix)
+print("\nClassification Report:")
+print(classification_rep)
 ```
 
 <H3>Output:</H3>
+<img width="970" height="453" alt="image" src="https://github.com/user-attachments/assets/89673268-28aa-46e1-80df-d3261ae1432b" />
 
-<img width="1040" height="278" alt="image" src="https://github.com/user-attachments/assets/4ee59dca-6c61-4b03-91b7-b483e11a0a9b" />
+<img width="745" height="238" alt="image" src="https://github.com/user-attachments/assets/70603333-c773-4e7a-af43-4600dcb83842" />
 
-<img width="1114" height="459" alt="image" src="https://github.com/user-attachments/assets/a65044b1-f0c6-43fe-aec5-b9abbc900f18" />
 
 <H3>Results:</H3>
 Thus, an ANN with MLP is constructed and trained to predict the heart attack using python.
